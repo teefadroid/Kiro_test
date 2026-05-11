@@ -84,10 +84,10 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT,
                    help=f"Folder to write transcripts into (default: {DEFAULT_OUTPUT.name}/).")
     p.add_argument("--provider", choices=available_providers(),
-                   default=os.environ.get("ARABIC_OCR_PROVIDER", "openai"),
-                   help="Vision LLM backend (default: openai, or $ARABIC_OCR_PROVIDER).")
+                   default=os.environ.get("ARABIC_OCR_PROVIDER", "ollama"),
+                   help="Vision LLM backend (default: ollama, or $ARABIC_OCR_PROVIDER).")
     p.add_argument("--model", default=os.environ.get("ARABIC_OCR_MODEL"),
-                   help="Model override (e.g. gpt-4o-mini, claude-3-5-haiku-latest, qwen2.5vl:7b).")
+                   help="Model override (e.g. qwen2.5vl:7b, gpt-4o-mini, claude-3-5-haiku-latest).")
     p.add_argument("--dpi", type=int, default=200,
                    help="PDF rendering DPI (default: 200).")
     p.add_argument("--pages", default=None,

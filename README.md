@@ -12,9 +12,9 @@ than most classical engines, especially on handwriting or low-quality scans.
 
 - Input: single image (`.png`, `.jpg`, `.jpeg`, `.webp`, `.tiff`, `.bmp`) or PDF (multi-page).
 - Pluggable providers:
-  - `openai` — GPT-4o / GPT-4o-mini (default)
+  - `ollama` — any local vision model, **default: `qwen2.5vl:7b`** (no API key, runs on your machine)
+  - `openai` — GPT-4o / GPT-4o-mini
   - `anthropic` — Claude 3.5 Sonnet / Haiku
-  - `ollama` — any local vision model (e.g. `qwen2.5vl`, `llama3.2-vision`)
 - Output: plain text (default), or JSON with per-page results.
 - No system dependencies beyond Python (PyMuPDF renders PDFs internally — no Poppler/Tesseract).
 
@@ -26,8 +26,11 @@ pip install -e .
 
 ## Quickest start: drop-in folder workflow
 
-1. Put your PDFs/images in `input/`.
-2. Export a key for your chosen provider (see table below).
+1. Install and start Ollama, then pull a vision model:
+   ```bash
+   ollama pull qwen2.5vl:7b          # or qwen2.5vl:3b for lower-end machines
+   ```
+2. Put your PDFs/images in `input/`.
 3. Run:
 
 ```bash
@@ -38,11 +41,16 @@ Each file in `input/` is OCR'd and a transcript is written to `output/` with
 the same stem (`input/contract.pdf` -> `output/contract.txt`). Files that
 already have output are skipped unless you pass `--overwrite`.
 
+> Default backend is **ollama** with model **qwen2.5vl:7b** — runs locally,
+> no API key required. Use `--provider openai` or `--provider anthropic`
+> (with the relevant key exported) if you'd rather call a hosted model.
+
 Common flags:
 
 ```bash
-python agent.py --provider anthropic            # switch backend
-python agent.py --model gpt-4o-mini             # cheaper/faster model
+python agent.py --model qwen2.5vl:3b            # smaller/faster local model
+python agent.py --provider openai               # hosted, needs OPENAI_API_KEY
+python agent.py --provider anthropic            # hosted, needs ANTHROPIC_API_KEY
 python agent.py --format json                   # structured output per page
 python agent.py --pages 1-3 --dpi 300           # only first 3 pages, higher DPI
 python agent.py --no-diacritics                 # strip tashkeel
@@ -52,16 +60,17 @@ python agent.py --input-dir scans --output-dir out   # custom folders
 ## Library / CLI usage
 
 ```bash
-# OpenAI (default)
-export OPENAI_API_KEY=sk-...
+# Local via Ollama (default, no API key)
+ollama pull qwen2.5vl:7b
 arabic-ocr path/to/document.pdf -o transcript.txt
 
-# Anthropic
+# OpenAI GPT-4o family
+export OPENAI_API_KEY=sk-...
+arabic-ocr scan.jpg --provider openai
+
+# Anthropic Claude
 export ANTHROPIC_API_KEY=sk-ant-...
 arabic-ocr scan.jpg --provider anthropic
-
-# Local via Ollama (no API key, offline-capable)
-arabic-ocr scan.png --provider ollama --model qwen2.5vl:7b
 
 # JSON output, one entry per page
 arabic-ocr book.pdf --format json -o out.json

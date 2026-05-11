@@ -25,8 +25,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--provider",
         choices=available_providers(),
-        default="openai",
-        help="Vision LLM backend (default: openai).",
+        default="ollama",
+        help="Vision LLM backend (default: ollama).",
     )
     p.add_argument(
         "--model",

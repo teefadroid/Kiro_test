@@ -82,7 +82,7 @@ def _ocr_one_page(
 def ocr_file(
     input_path: str | Path,
     *,
-    provider: str | VisionProvider = "openai",
+    provider: str | VisionProvider = "ollama",
     model: str | None = None,
     dpi: int = 200,
     page_spec: str | None = None,
