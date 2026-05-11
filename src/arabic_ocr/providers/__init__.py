@@ -14,12 +14,18 @@ _REGISTRY: dict[str, type[VisionProvider]] = {
 }
 
 
-def get_provider(name: str, *, model: str | None = None, **kwargs) -> VisionProvider:
-    """Construct a provider by name. ``model=None`` uses the provider's default."""
+def get_provider(name: str, *, model: str | None = None, timeout: float | None = None, **kwargs) -> VisionProvider:
+    """Construct a provider by name. ``model=None`` uses the provider's default.
+
+    ``timeout`` is forwarded to the provider only when explicitly set so each
+    provider keeps its own sensible default.
+    """
     key = name.lower().strip()
     if key not in _REGISTRY:
         valid = ", ".join(sorted(_REGISTRY))
         raise ValueError(f"Unknown provider {name!r}. Valid: {valid}.")
+    if timeout is not None:
+        kwargs["timeout"] = timeout
     return _REGISTRY[key](model=model, **kwargs)
 
 

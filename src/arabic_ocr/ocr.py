@@ -87,6 +87,7 @@ def ocr_file(
     dpi: int = 200,
     page_spec: str | None = None,
     preserve_diacritics: bool = True,
+    timeout: float | None = None,
     progress: Callable[[int, int, PageResult], None] | None = None,
 ) -> OCRResult:
     """Run OCR on a PDF or image and return an ``OCRResult``.
@@ -106,11 +107,18 @@ def ocr_file(
         Optional page range like ``"1,3-5"`` (ignored for image inputs).
     preserve_diacritics:
         If ``True``, ask the model to keep Arabic diacritics.
+    timeout:
+        Per-page HTTP timeout in seconds. ``None`` keeps the provider default
+        (15 minutes for Ollama, 2 minutes for hosted providers).
     progress:
         Optional callback ``(current, total, page_result) -> None`` invoked after
         each page.
     """
-    prov = provider if isinstance(provider, VisionProvider) else get_provider(provider, model=model)
+    prov = (
+        provider
+        if isinstance(provider, VisionProvider)
+        else get_provider(provider, model=model, timeout=timeout)
+    )
 
     pages = load_pages(input_path, dpi=dpi, page_spec=page_spec)
     results: list[PageResult] = []

@@ -9,6 +9,11 @@ import requests
 
 from .base import ProviderError, VisionProvider
 
+# Vision models are slow on CPU; a 7B on a cold start can easily chew through
+# 5+ minutes on one page. 15 minutes is a safer default than the usual
+# "request timeout" value. Callers can still override via env or CLI.
+_DEFAULT_TIMEOUT_S = 900.0
+
 
 class OllamaProvider(VisionProvider):
     name = "ollama"
@@ -19,9 +24,14 @@ class OllamaProvider(VisionProvider):
         *,
         model: str | None = None,
         host: str | None = None,
-        timeout: float = 300.0,
+        timeout: float | None = None,
     ) -> None:
-        super().__init__(model=model, timeout=timeout)
+        resolved_timeout = (
+            timeout
+            if timeout is not None
+            else float(os.environ.get("OLLAMA_TIMEOUT", _DEFAULT_TIMEOUT_S))
+        )
+        super().__init__(model=model, timeout=resolved_timeout)
         self.host = (host or os.environ.get("OLLAMA_HOST") or "http://localhost:11434").rstrip("/")
 
     def transcribe(
@@ -48,10 +58,26 @@ class OllamaProvider(VisionProvider):
                 json=payload,
                 timeout=self.timeout,
             )
-        except requests.RequestException as e:
+        except requests.exceptions.ConnectTimeout as e:
             raise ProviderError(
-                f"Ollama request failed (is the server running at {self.host}?): {e}"
+                f"Could not reach Ollama at {self.host} (connect timeout). "
+                f"Is the server running? Try: 'ollama serve'"
             ) from e
+        except requests.exceptions.ConnectionError as e:
+            raise ProviderError(
+                f"Could not reach Ollama at {self.host}. "
+                f"Is the server running? Try: 'ollama serve'. Details: {e}"
+            ) from e
+        except requests.exceptions.ReadTimeout as e:
+            raise ProviderError(
+                f"Ollama read timeout after {self.timeout:.0f}s -- the server was "
+                f"reached but inference did not finish in time. "
+                f"Try a smaller model (e.g. 'qwen2.5vl:3b'), a lower --dpi (e.g. 150), "
+                f"or a longer --timeout. On CPU, a 7B vision model can take "
+                f"many minutes per page on first load."
+            ) from e
+        except requests.RequestException as e:
+            raise ProviderError(f"Ollama request failed: {e}") from e
 
         if resp.status_code >= 400:
             raise ProviderError(

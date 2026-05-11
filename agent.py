@@ -89,7 +89,10 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--model", default=os.environ.get("ARABIC_OCR_MODEL"),
                    help="Model override (e.g. qwen2.5vl:7b, gpt-4o-mini, claude-3-5-haiku-latest).")
     p.add_argument("--dpi", type=int, default=200,
-                   help="PDF rendering DPI (default: 200).")
+                   help="PDF rendering DPI (default: 200). Lower = faster on CPU.")
+    p.add_argument("--timeout", type=float, default=None,
+                   help="Per-page HTTP timeout in seconds. Default: provider-specific "
+                        "(900s for ollama, 120s for hosted providers).")
     p.add_argument("--pages", default=None,
                    help='Page selection like "1,3-5" (applies to every PDF). Default: all pages.')
     p.add_argument("--format", choices=("text", "json"), default="text",
@@ -163,6 +166,7 @@ def main(argv: list[str] | None = None) -> int:
                 dpi=args.dpi,
                 page_spec=args.pages,
                 preserve_diacritics=args.preserve_diacritics,
+                timeout=args.timeout,
                 progress=_progress_factory(idx, total, src.name),
             )
         except ProviderError as e:
