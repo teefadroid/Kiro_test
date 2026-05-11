@@ -6,8 +6,13 @@ dist/
 .venv/
 venv/
 .env
-*.pdf
-*.png
-*.jpg
-*.jpeg
 .pytest_cache/
+.deps/
+
+# User documents and generated transcripts — keep the folders, ignore contents.
+/input/*
+!/input/.gitkeep
+!/input/README.md
+/output/*
+!/output/.gitkeep
+!/output/README.md

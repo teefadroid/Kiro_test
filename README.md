@@ -24,7 +24,32 @@ than most classical engines, especially on handwriting or low-quality scans.
 pip install -e .
 ```
 
-## Quick start
+## Quickest start: drop-in folder workflow
+
+1. Put your PDFs/images in `input/`.
+2. Export a key for your chosen provider (see table below).
+3. Run:
+
+```bash
+python agent.py
+```
+
+Each file in `input/` is OCR'd and a transcript is written to `output/` with
+the same stem (`input/contract.pdf` -> `output/contract.txt`). Files that
+already have output are skipped unless you pass `--overwrite`.
+
+Common flags:
+
+```bash
+python agent.py --provider anthropic            # switch backend
+python agent.py --model gpt-4o-mini             # cheaper/faster model
+python agent.py --format json                   # structured output per page
+python agent.py --pages 1-3 --dpi 300           # only first 3 pages, higher DPI
+python agent.py --no-diacritics                 # strip tashkeel
+python agent.py --input-dir scans --output-dir out   # custom folders
+```
+
+## Library / CLI usage
 
 ```bash
 # OpenAI (default)
