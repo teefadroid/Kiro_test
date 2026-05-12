@@ -13,6 +13,7 @@ than most classical engines, especially on handwriting or low-quality scans.
 - Input: single image (`.png`, `.jpg`, `.jpeg`, `.webp`, `.tiff`, `.bmp`) or PDF (multi-page).
 - Pluggable providers:
   - `ollama` — any local vision model, **default: `qwen2.5vl:7b`** (no API key, runs on your machine)
+  - `gemini` — Google Gemini 2.5 Flash / Pro (strong Arabic, generous free tier)
   - `openai` — GPT-4o / GPT-4o-mini
   - `anthropic` — Claude 3.5 Sonnet / Haiku
 - Output: plain text (default), or JSON with per-page results.
@@ -49,6 +50,7 @@ Common flags:
 
 ```bash
 python agent.py --model qwen2.5vl:3b            # smaller/faster local model
+python agent.py --provider gemini               # hosted, needs GEMINI_API_KEY (free tier available)
 python agent.py --provider openai               # hosted, needs OPENAI_API_KEY
 python agent.py --provider anthropic            # hosted, needs ANTHROPIC_API_KEY
 python agent.py --format json                   # structured output per page
@@ -63,6 +65,11 @@ python agent.py --input-dir scans --output-dir out   # custom folders
 # Local via Ollama (default, no API key)
 ollama pull qwen2.5vl:7b
 arabic-ocr path/to/document.pdf -o transcript.txt
+
+# Google Gemini (recommended cloud option; free tier available)
+export GEMINI_API_KEY=...                # get one at https://aistudio.google.com/app/apikey
+arabic-ocr scan.jpg --provider gemini
+arabic-ocr book.pdf --provider gemini --model gemini-2.5-pro   # higher quality, slower
 
 # OpenAI GPT-4o family
 export OPENAI_API_KEY=sk-...
@@ -80,7 +87,7 @@ arabic-ocr book.pdf --format json -o out.json
 
 ```
 arabic-ocr INPUT [-o OUTPUT]
-                 [--provider {openai,anthropic,ollama}]
+                 [--provider {openai,anthropic,gemini,ollama}]
                  [--model MODEL]
                  [--dpi DPI]
                  [--pages 1,3-5]
@@ -100,7 +107,10 @@ arabic-ocr INPUT [-o OUTPUT]
 | `OPENAI_API_KEY`    | Required for `--provider openai`            |
 | `OPENAI_BASE_URL`   | Optional override (e.g. Azure, proxies)     |
 | `ANTHROPIC_API_KEY` | Required for `--provider anthropic`         |
+| `GEMINI_API_KEY`    | Required for `--provider gemini` (`GOOGLE_API_KEY` also accepted) |
+| `GEMINI_BASE_URL`   | Optional override (default Gemini Developer API) |
 | `OLLAMA_HOST`       | Default `http://localhost:11434`            |
+| `OLLAMA_TIMEOUT`    | Read timeout in seconds (default: 900)      |
 
 ## How it works
 

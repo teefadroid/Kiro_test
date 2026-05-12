@@ -5,11 +5,13 @@ from __future__ import annotations
 from .base import VisionProvider
 from .openai import OpenAIProvider
 from .anthropic import AnthropicProvider
+from .gemini import GeminiProvider
 from .ollama import OllamaProvider
 
 _REGISTRY: dict[str, type[VisionProvider]] = {
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
+    "gemini": GeminiProvider,
     "ollama": OllamaProvider,
 }
 
@@ -37,6 +39,7 @@ __all__ = [
     "VisionProvider",
     "OpenAIProvider",
     "AnthropicProvider",
+    "GeminiProvider",
     "OllamaProvider",
     "get_provider",
     "available_providers",
