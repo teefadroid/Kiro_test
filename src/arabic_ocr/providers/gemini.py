@@ -72,8 +72,16 @@ class GeminiProvider(VisionProvider):
             "generationConfig": {
                 "temperature": 0,
                 # Arabic pages with tashkeel can be long; give the model headroom
-                # rather than letting it truncate silently.
-                "maxOutputTokens": 8192,
+                # rather than letting it truncate silently. 32k is well within
+                # the 2.5 family's 65k output ceiling.
+                "maxOutputTokens": 32768,
+                # Critical for OCR: gemini-2.5-flash defaults to "thinking" mode,
+                # which silently consumes most of the maxOutputTokens budget on
+                # invisible reasoning tokens before any text is emitted. For a
+                # verbatim transcription task we don't want any reasoning -- we
+                # want every output token spent on the transcription itself.
+                # Setting thinkingBudget to 0 disables thinking entirely.
+                "thinkingConfig": {"thinkingBudget": 0},
             },
         }
         headers = {
@@ -119,8 +127,29 @@ class GeminiProvider(VisionProvider):
         if not text:
             # Candidate exists but had no text -- typically SAFETY or RECITATION
             # block on the response itself, or MAX_TOKENS hit before any token.
+            if finish_reason == "MAX_TOKENS":
+                raise ProviderError(
+                    "Gemini hit MAX_TOKENS before producing any visible text. "
+                    "This usually means thinking-mode consumed the entire budget. "
+                    "Confirm thinkingConfig.thinkingBudget=0 is being honored, "
+                    "or pick a non-thinking model variant."
+                )
             raise ProviderError(
                 f"Gemini returned an empty response "
                 f"(finishReason={finish_reason!r}). Raw: {resp.text[:500]}"
             )
+
+        if finish_reason == "MAX_TOKENS":
+            # Response is non-empty but was cut off mid-transcription -- surface
+            # this loudly so the caller knows the page is incomplete instead of
+            # silently writing a truncated transcript.
+            import logging
+            logging.getLogger(__name__).warning(
+                "Gemini response was truncated (MAX_TOKENS hit at %d output "
+                "tokens). The page transcript is incomplete -- consider raising "
+                "maxOutputTokens or using --pages to split the document.",
+                len(text),
+            )
+            text = text + "\n\n[output truncated by Gemini MAX_TOKENS]"
+
         return text

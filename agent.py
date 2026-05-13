@@ -50,14 +50,18 @@ def _discover_inputs(input_dir: Path) -> list[Path]:
     return files
 
 
+_FMT_SUFFIX = {"text": ".txt", "json": ".json", "md": ".md"}
+
+
 def _output_path(src: Path, output_dir: Path, fmt: str) -> Path:
-    suffix = ".json" if fmt == "json" else ".txt"
-    return output_dir / (src.stem + suffix)
+    return output_dir / (src.stem + _FMT_SUFFIX[fmt])
 
 
 def _render(result: OCRResult, fmt: str) -> str:
     if fmt == "json":
         return result.as_json()
+    if fmt == "md":
+        return result.as_markdown()
     return result.as_text(include_separators=len(result.pages) > 1)
 
 
@@ -95,8 +99,10 @@ def _build_parser() -> argparse.ArgumentParser:
                         "(900s for ollama, 120s for hosted providers).")
     p.add_argument("--pages", default=None,
                    help='Page selection like "1,3-5" (applies to every PDF). Default: all pages.')
-    p.add_argument("--format", choices=("text", "json"), default="text",
-                   help="Output format per file (default: text).")
+    p.add_argument("--format", choices=("text", "json", "md"), default="text",
+                   help="Output format per file: text (.txt), json (.json), "
+                        "or md (.md, Markdown with RTL-aware page headings). "
+                        "Default: text.")
 
     diacritics = p.add_mutually_exclusive_group()
     diacritics.add_argument("--preserve-diacritics", dest="preserve_diacritics",

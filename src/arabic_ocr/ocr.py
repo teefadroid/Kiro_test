@@ -46,6 +46,39 @@ class OCRResult:
     def as_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False, indent=2)
 
+    def as_markdown(self) -> str:
+        """Render as a Markdown document with proper RTL handling.
+
+        Each page is wrapped in ``<div dir="rtl">`` so renderers like GitHub,
+        VS Code preview, and Obsidian display the Arabic with the correct
+        direction even when surrounded by Latin text or punctuation.
+        Single-page documents skip the per-page header for cleanliness.
+        """
+        src_name = Path(self.source).name
+        lines: list[str] = [
+            f"# {src_name}",
+            "",
+            f"*OCR via `{self.provider}` (`{self.model}`)*",
+            "",
+        ]
+
+        def _page_block(p: PageResult) -> list[str]:
+            if p.error:
+                return [f"> **Error on page {p.page_number}:** {p.error}", ""]
+            # Blank lines around the raw HTML so the markdown parser doesn't
+            # treat the Arabic content as inside an HTML block.
+            return ['<div dir="rtl" markdown="1">', "", p.text, "", "</div>", ""]
+
+        if len(self.pages) == 1:
+            lines.extend(_page_block(self.pages[0]))
+        else:
+            for p in self.pages:
+                lines.append(f"## Page {p.page_number}")
+                lines.append("")
+                lines.extend(_page_block(p))
+
+        return "\n".join(lines).rstrip() + "\n"
+
 
 def _ocr_one_page(
     provider: VisionProvider,

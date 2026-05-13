@@ -42,8 +42,9 @@ def _build_parser() -> argparse.ArgumentParser:
         help='Page selection like "1,3-5,8" (1-indexed). PDFs only.',
     )
     p.add_argument(
-        "--format", choices=("text", "json"), default="text",
-        help="Output format (default: text).",
+        "--format", choices=("text", "json", "md"), default="text",
+        help="Output format: text (default), json (per-page structure), "
+             "or md (Markdown with RTL-friendly page headings).",
     )
 
     diacritics = p.add_mutually_exclusive_group()
@@ -74,6 +75,8 @@ def _progress(current: int, total: int, page: PageResult) -> None:
 def _render(result: OCRResult, fmt: str) -> str:
     if fmt == "json":
         return result.as_json()
+    if fmt == "md":
+        return result.as_markdown()
     return result.as_text(include_separators=len(result.pages) > 1)
 
 
