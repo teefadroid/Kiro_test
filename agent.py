@@ -101,7 +101,9 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="PDF rendering DPI (default: 200). Lower = faster on CPU.")
     p.add_argument("--timeout", type=float, default=None,
                    help="Per-page HTTP timeout in seconds. Default: provider-specific "
-                        "(900s for ollama, 120s for hosted providers).")
+                        "(900s for ollama, 600s for hosted providers). "
+                        "Can also be set via OLLAMA_TIMEOUT / GEMINI_TIMEOUT / "
+                        "OPENAI_TIMEOUT / ANTHROPIC_TIMEOUT env vars.")
     p.add_argument("--pages", default=None,
                    help='Page selection like "1,3-5" (applies to every PDF). Default: all pages.')
     p.add_argument("--format", choices=("text", "json", "md"), default="text",

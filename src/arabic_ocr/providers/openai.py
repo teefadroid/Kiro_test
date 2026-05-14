@@ -20,9 +20,14 @@ class OpenAIProvider(VisionProvider):
         model: str | None = None,
         api_key: str | None = None,
         base_url: str | None = None,
-        timeout: float = 120.0,
+        timeout: float | None = None,
     ) -> None:
-        super().__init__(model=model, timeout=timeout)
+        resolved_timeout = (
+            timeout
+            if timeout is not None
+            else float(os.environ.get("OPENAI_TIMEOUT", 600.0))
+        )
+        super().__init__(model=model, timeout=resolved_timeout)
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.base_url = (
             base_url

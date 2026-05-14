@@ -29,9 +29,17 @@ class GeminiProvider(VisionProvider):
         model: str | None = None,
         api_key: str | None = None,
         base_url: str | None = None,
-        timeout: float = 120.0,
+        timeout: float | None = None,
     ) -> None:
-        super().__init__(model=model, timeout=timeout)
+        # Vision OCR on a dense Arabic page can generate thousands of output
+        # tokens; 120s is too tight even on Flash. Default to 10 minutes and
+        # let the user override via GEMINI_TIMEOUT or --timeout.
+        resolved_timeout = (
+            timeout
+            if timeout is not None
+            else float(os.environ.get("GEMINI_TIMEOUT", 600.0))
+        )
+        super().__init__(model=model, timeout=resolved_timeout)
         self.api_key = (
             api_key
             or os.environ.get("GEMINI_API_KEY")
@@ -94,7 +102,9 @@ class GeminiProvider(VisionProvider):
         except requests.exceptions.ReadTimeout as e:
             raise ProviderError(
                 f"Gemini read timeout after {self.timeout:.0f}s. "
-                f"Try --model gemini-2.5-flash (faster) or a longer --timeout."
+                f"Try a longer timeout via --timeout 1200 or "
+                f"set GEMINI_TIMEOUT=1200 in your environment. "
+                f"Dense pages with maxOutputTokens=32768 can take several minutes."
             ) from e
         except requests.RequestException as e:
             raise ProviderError(f"Gemini request failed: {e}") from e
