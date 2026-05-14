@@ -68,7 +68,12 @@ def _render(result: OCRResult, fmt: str) -> str:
 def _progress_factory(file_index: int, file_total: int, name: str):
     """Build a per-file progress callback that prefixes the file being processed."""
     def progress(current: int, total: int, page: PageResult) -> None:
-        status = "ok" if page.error is None else f"ERROR: {page.error}"
+        if page.skipped:
+            status = "skipped (no Arabic)"
+        elif page.error:
+            status = f"ERROR: {page.error}"
+        else:
+            status = "ok"
         print(
             f"  [{file_index}/{file_total}] {name}: "
             f"page {page.page_number} ({current}/{total}) "

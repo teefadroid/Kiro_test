@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Callable
 
 from .loader import PageImage, load_pages
-from .prompts import SYSTEM_PROMPT, build_user_prompt
+from .prompts import NO_ARABIC_SENTINEL, SYSTEM_PROMPT, build_user_prompt
 from .providers import VisionProvider, get_provider
 from .providers.base import ProviderError
 
@@ -24,6 +24,7 @@ class PageResult:
     page_number: int
     text: str
     error: str | None = None
+    skipped: bool = False  # True when page had no Arabic content
     latency_s: float = 0.0
 
 
@@ -35,10 +36,14 @@ class OCRResult:
     pages: list[PageResult] = field(default_factory=list)
 
     def as_text(self, *, include_separators: bool = True) -> str:
-        if not include_separators or len(self.pages) == 1:
-            return "\n\n".join(p.text for p in self.pages).strip()
+        # Filter out skipped pages (no Arabic content)
+        active = [p for p in self.pages if not p.skipped]
+        if not active:
+            return ""
+        if not include_separators or len(active) == 1:
+            return "\n\n".join(p.text for p in active).strip()
         parts = []
-        for p in self.pages:
+        for p in active:
             parts.append(PAGE_SEPARATOR.format(page=p.page_number).strip())
             parts.append(p.text)
         return "\n\n".join(parts).strip() + "\n"
@@ -65,14 +70,21 @@ class OCRResult:
         def _page_block(p: PageResult) -> list[str]:
             if p.error:
                 return [f"> **Error on page {p.page_number}:** {p.error}", ""]
+            if p.skipped:
+                return []  # omit from markdown entirely
             # Blank lines around the raw HTML so the markdown parser doesn't
             # treat the Arabic content as inside an HTML block.
             return ['<div dir="rtl" markdown="1">', "", p.text, "", "</div>", ""]
 
-        if len(self.pages) == 1:
-            lines.extend(_page_block(self.pages[0]))
+        active = [p for p in self.pages if not p.skipped]
+        if not active:
+            lines.append("*No Arabic content found in this document.*\n")
+            return "\n".join(lines).rstrip() + "\n"
+
+        if len(active) == 1:
+            lines.extend(_page_block(active[0]))
         else:
-            for p in self.pages:
+            for p in active:
                 lines.append(f"## Page {p.page_number}")
                 lines.append("")
                 lines.extend(_page_block(p))
@@ -97,10 +109,21 @@ def _ocr_one_page(
             system_prompt=SYSTEM_PROMPT,
             user_prompt=user_prompt,
         )
+        elapsed = round(time.monotonic() - start, 3)
+        # If the model returned the sentinel, the page had no Arabic content.
+        stripped = text.strip()
+        if stripped == NO_ARABIC_SENTINEL or stripped == NO_ARABIC_SENTINEL.strip("[]"):
+            log.info("Page %d: no Arabic content, skipping.", page.page_number)
+            return PageResult(
+                page_number=page.page_number,
+                text="",
+                skipped=True,
+                latency_s=elapsed,
+            )
         return PageResult(
             page_number=page.page_number,
             text=text,
-            latency_s=round(time.monotonic() - start, 3),
+            latency_s=elapsed,
         )
     except ProviderError as e:
         log.error("Page %d failed: %s", page.page_number, e)
